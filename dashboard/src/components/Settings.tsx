@@ -12,6 +12,7 @@ import { api } from '../api'
 
 interface SettingsData {
   display_name: string | null
+  global_leaderboard_opt_in: boolean
 }
 
 interface ApiKeyInfo {
@@ -24,6 +25,7 @@ interface ApiKeyInfo {
 export function Settings({ onClose }: { onClose: () => void }) {
   const [settings, setSettings] = useState<SettingsData | null>(null)
   const [displayName, setDisplayName] = useState('')
+  const [optIn, setOptIn] = useState(false)
   const [saving, setSaving] = useState(false)
   const [savedMsg, setSavedMsg] = useState('')
 
@@ -36,6 +38,7 @@ export function Settings({ onClose }: { onClose: () => void }) {
     api.getSettings().then(data => {
       setSettings(data)
       setDisplayName(data.display_name ?? '')
+      setOptIn(data.global_leaderboard_opt_in)
     }).catch(console.error)
 
     api.getApiKeyInfo().then(setApiKeyInfo).catch(console.error)

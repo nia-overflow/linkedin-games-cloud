@@ -75,6 +75,19 @@ export interface LogsResponse {
 
 export interface UserSettings {
   display_name: string | null
+  global_leaderboard_opt_in: boolean
+}
+
+export interface CommunityEntry {
+  displayName: string
+  isCurrentUser: boolean
+  gameName: string
+  playedDate: string
+  completionTimeSecs: number | null
+  myRank: number | null
+  globalPercentile: number | null
+  score: number | null
+  completed: boolean
 }
 
 export interface ApiKeyInfo {
@@ -137,7 +150,7 @@ export const api = {
   getSettings: () =>
     get<UserSettings>('/user/settings'),
 
-  updateSettings: (data: { displayName?: string }) =>
+  updateSettings: (data: { displayName?: string; globalLeaderboardOptIn?: boolean }) =>
     post<{ success: boolean }>('/user/settings', data),
 
   // ── API key management ────────────────────────────────────────────────────
@@ -147,4 +160,12 @@ export const api = {
 
   generateApiKey: () =>
     post<{ key: string }>('/user/api-key'),
+
+  // ── Community leaderboard ─────────────────────────────────────────────────
+
+  getCommunityLeaderboard: (game: string, date?: string) =>
+    get<CommunityEntry[]>('/community/leaderboard', {
+      game,
+      ...(date ? { date } : {}),
+    }),
 }
