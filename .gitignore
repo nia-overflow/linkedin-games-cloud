@@ -14,5 +14,9 @@ dashboard/dist/
 # macOS
 .DS_Store
 
+# Internal planning docs
+CLAUDE_CODE_PLAN.md
+TECHNICAL_DESIGN.md
+
 # TypeScript
 *.tsbuildinfo
