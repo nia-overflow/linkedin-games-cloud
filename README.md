@@ -25,6 +25,7 @@ Claude will handle the installation automatically and pause to ask you when it n
 ### Prerequisites
 
 - macOS (nightly scheduling uses launchd)
+- **Mac must be powered on at 11:55 PM** — sleeping or lid shut is fine, but fully powered off means that night's scrape is missed
 - Node.js 20+ — [nodejs.org](https://nodejs.org)
 - pnpm — `npm install -g pnpm`
 - A LinkedIn account with games played
