@@ -4,7 +4,11 @@ import { HistoryChart } from './components/HistoryChart'
 import { LeaderboardTable } from './components/LeaderboardTable'
 import { StalenessWarning } from './components/StalenessWarning'
 import { TodayResults } from './components/TodayResults'
-import { api } from './api'
+import { Login } from './components/Login'
+import { Settings } from './components/Settings'
+import { api, setTokenProvider } from './api'
+import { isAuthEnabled } from './auth'
+import { useAuth } from './hooks/useAuth'
 import type { ScrapeLogEntry } from './api'
 import './styles.css'
 
@@ -54,18 +58,42 @@ function DevTab({ logs }: { logs: ScrapeLogEntry[] }) {
 }
 
 export default function App() {
+  const { session, loading: authLoading, accessToken, signOut } = useAuth()
   const [selectedGame, setSelectedGame] = useState<string>('all')
   const [games, setGames] = useState<string[]>(KNOWN_GAMES)
   const [lastCapturedAt, setLastCapturedAt] = useState<string | null>(null)
   const [allLogs, setAllLogs] = useState<ScrapeLogEntry[]>([])
+  const [showSettings, setShowSettings] = useState(false)
+
+  // Wire up the token provider so all API calls include Authorization header
+  useEffect(() => {
+    setTokenProvider(() => accessToken)
+  }, [accessToken])
 
   useEffect(() => {
+    // Only fetch data if we're not in auth-required mode, or if we have a session
+    if (isAuthEnabled && !session) return
+
     api.getGames().then(setGames).catch(() => {})
     api.getLogs().then(data => {
       setLastCapturedAt(data.lastCapturedAt)
       setAllLogs(data.entries)
     }).catch(() => {})
-  }, [])
+  }, [session])
+
+  // Show nothing while Supabase checks for an existing session
+  if (isAuthEnabled && authLoading) {
+    return (
+      <div className="app-loading">
+        <div className="app-loading-spinner" />
+      </div>
+    )
+  }
+
+  // Require sign-in when auth is enabled
+  if (isAuthEnabled && !session) {
+    return <Login />
+  }
 
   const isStale = lastCapturedAt
     ? Date.now() - new Date(lastCapturedAt).getTime() > 25 * 60 * 60 * 1000
@@ -81,11 +109,31 @@ export default function App() {
             <span className="header-logo">🎮</span>
             <h1>LinkedIn Games Dashboard</h1>
           </div>
-          {lastCapturedAt && (
-            <div className="header-meta">
-              Last updated: {new Date(lastCapturedAt).toLocaleString()}
-            </div>
-          )}
+          <div className="header-actions">
+            {lastCapturedAt && (
+              <div className="header-meta">
+                Last updated: {new Date(lastCapturedAt).toLocaleString()}
+              </div>
+            )}
+            {isAuthEnabled && session && (
+              <>
+                <button
+                  className="header-btn"
+                  onClick={() => setShowSettings(true)}
+                  title="Settings"
+                >
+                  Settings
+                </button>
+                <button
+                  className="header-btn header-btn--secondary"
+                  onClick={() => signOut?.()}
+                  title="Sign out"
+                >
+                  Sign out
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </header>
 
@@ -101,7 +149,11 @@ export default function App() {
               onClick={() => setSelectedGame(game)}
               aria-pressed={selectedGame === game}
             >
-              {game === 'all' ? 'All Games' : game === 'dev' ? 'Dev' : capitalize(game)}
+              {game === 'all'
+                ? 'All Games'
+                : game === 'dev'
+                  ? 'Dev'
+                  : capitalize(game)}
             </button>
           ))}
         </nav>
@@ -139,6 +191,8 @@ export default function App() {
           </>
         )}
       </main>
+
+      {showSettings && <Settings onClose={() => setShowSettings(false)} />}
     </div>
   )
 }
