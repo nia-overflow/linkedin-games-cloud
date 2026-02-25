@@ -6,32 +6,26 @@ A Playwright scraper runs nightly on your Mac, captures results from Queens, Tan
 
 ---
 
-## How it works
+## Quickstart (for Claude Code users)
 
-```
-11:55 PM  Mac wakes up
-          Scraper opens Chrome (your saved LinkedIn session)
-          Visits each game page, captures scores + leaderboard
-          Writes to local SQLite (offline backup)
-          Pushes data to the cloud dashboard
-          Browser closes
+**Give this to your local Claude:**
 
-Any time  Open linkedin-games-dashboard.up.railway.app
-          Sign in with Google → see your stats
-```
+> Clone https://github.com/nia-overflow/linkedin-games-cloud and set it up for me by following the README.
+
+Claude will handle the installation automatically and pause to ask you when it needs you to do something in the browser.
 
 ---
 
-## Requirements
+## Setup
 
-- **macOS** (nightly scheduling uses launchd)
-- **Node.js 20+** — [nodejs.org](https://nodejs.org)
-- **pnpm** — `npm install -g pnpm`
-- A **LinkedIn account** with games played
+> **If you're using Claude Code**, paste the instruction above and skip to step 3 when Claude tells you. Otherwise follow the steps below manually.
 
----
+### Prerequisites
 
-## Setup (15 min)
+- macOS (nightly scheduling uses launchd)
+- Node.js 20+ — [nodejs.org](https://nodejs.org)
+- pnpm — `npm install -g pnpm`
+- A LinkedIn account with games played
 
 ### 1. Clone and install
 
@@ -42,59 +36,64 @@ pnpm install
 pnpm exec playwright install chromium
 ```
 
-### 2. Log in to LinkedIn
+Verify: `pnpm scrape --help` should print usage without errors.
 
-This opens a Chrome window. Sign in to LinkedIn, then close the window.
+### 2. Log in to LinkedIn
 
 ```bash
 pnpm setup:profile
 ```
 
+**[Human step]** This opens a Chrome window. Sign in to LinkedIn, play a game if you haven't today, then close the window. Tell Claude (or continue below) once the window is closed.
+
 ### 3. Sign in to the dashboard
 
-Go to **[linkedin-games-dashboard.up.railway.app](https://linkedin-games-dashboard.up.railway.app)** and click **Sign in with Google**.
+**[Human step]** Open **[linkedin-games-dashboard.up.railway.app](https://linkedin-games-dashboard.up.railway.app)** and click **Sign in with Google**. Use the same Google account you want to track stats under.
 
 ### 4. Generate an API key
 
-In the dashboard: **Settings → Generate API Key → Copy** the `lgk_...` key.
+**[Human step]** In the dashboard, click **Settings → Generate API Key → Copy** the `lgk_...` key. Paste it back to Claude (or use it in step 5 below).
 
 ### 5. Configure the scraper
 
-Create `~/.linkedin-games/.env`:
-
 ```bash
 mkdir -p ~/.linkedin-games
-cat > ~/.linkedin-games/.env << EOF
-CLOUD_ENDPOINT=https://linkedin-games-dashboard.up.railway.app
-CLOUD_API_KEY=lgk_YOUR_KEY_HERE
-EOF
 ```
 
-Replace `lgk_YOUR_KEY_HERE` with the key you copied in step 4.
+Create `~/.linkedin-games/.env` with the following contents, replacing `lgk_YOUR_KEY_HERE` with the key from step 4:
+
+```
+CLOUD_ENDPOINT=https://linkedin-games-dashboard.up.railway.app
+CLOUD_API_KEY=lgk_YOUR_KEY_HERE
+```
 
 ### 6. Run your first scrape
 
 ```bash
+cd linkedin-games-cloud
 pnpm scrape
 ```
 
-You should see `☁️ Cloud push OK` at the end. Refresh the dashboard and your stats will appear.
+Verify: the output should end with `☁️ Cloud push OK`. Refresh the dashboard — your stats will appear.
 
-### 7. Schedule nightly scrapes (optional but recommended)
+### 7. Schedule nightly scrapes (recommended)
 
 ```bash
 bash scripts/install-daemons.sh
 ```
 
-This installs a launchd agent that runs the scraper at 11:55 PM every night and wakes your Mac if it's asleep.
+This installs a launchd agent that runs the scraper at 11:55 PM every night and wakes your Mac if it's asleep. Done — no further action needed.
 
 ---
 
-## Re-login
+## Day-to-day
 
-LinkedIn sessions expire every few weeks. If the scraper stops capturing data:
+The scraper runs automatically every night. Open the dashboard any time to see your stats.
+
+**If the scraper stops capturing data** (LinkedIn sessions expire every few weeks):
 
 ```bash
+cd linkedin-games-cloud
 pnpm setup:profile
 ```
 
@@ -102,24 +101,15 @@ Opens Chrome so you can log back in. No other changes needed.
 
 ---
 
-## Manual commands
-
-```bash
-pnpm scrape          # Run scraper now
-pnpm setup:profile   # Re-login to LinkedIn
-```
-
----
-
 ## What you see
 
-**All Games tab** — today's result for each game + 30-day history chart + aggregate stats (streak, win rate, avg time, avg percentile)
+**All Games** — today's result for each game + 30-day history chart + aggregate stats (streak, win rate, avg time, avg percentile)
 
 **Per-game tabs** — 5 stat cards · completion time history · today's leaderboard against your connections
 
-**Community tab** — best times across all users who've opted in to the leaderboard (opt in via Settings)
+**Community** — best times across all users who've opted in (opt in via Settings)
 
-**Dev tab** — full scrape log for debugging
+**Dev** — full scrape log for debugging
 
 ---
 
@@ -127,7 +117,7 @@ pnpm setup:profile   # Re-login to LinkedIn
 
 - Your game data is private by default — only you can see it (enforced at the database level)
 - The Community Leaderboard is opt-in only, from the Settings page
-- Your LinkedIn session stays on your machine — it's never sent to the server
+- Your LinkedIn session stays on your machine — it is never sent to the server
 - Local SQLite backup at `~/.linkedin-games/games.db` always kept in sync
 
 ---
@@ -136,10 +126,10 @@ pnpm setup:profile   # Re-login to LinkedIn
 
 LinkedIn occasionally changes their page structure. If you see scrape errors:
 
-1. Run `pnpm discover` to capture fresh screenshots and HTML of each game page
+1. `pnpm discover` — captures fresh screenshots and HTML of each game page
 2. Check `scraper/discovery/` for the current DOM structure
 3. Update selectors in `scraper/src/games/<game>.ts`
-4. Run `pnpm scrape` to verify
+4. `pnpm scrape` to verify
 
 ---
 
