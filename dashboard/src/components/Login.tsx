@@ -3,15 +3,31 @@
  * Shown when auth is enabled and the user is not signed in.
  */
 
-import React from 'react'
+import React, { useState } from 'react'
 import { supabase } from '../auth'
 
 export function Login() {
-  function handleSignIn() {
+  const [email, setEmail] = useState('')
+  const [sent, setSent] = useState(false)
+  const [sending, setSending] = useState(false)
+
+  function handleGoogleSignIn() {
     supabase?.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: window.location.origin },
     })
+  }
+
+  async function handleMagicLink(e: React.FormEvent) {
+    e.preventDefault()
+    if (!email.trim() || !supabase) return
+    setSending(true)
+    await supabase.auth.signInWithOtp({
+      email: email.trim(),
+      options: { emailRedirectTo: window.location.origin },
+    })
+    setSending(false)
+    setSent(true)
   }
 
   return (
@@ -22,10 +38,28 @@ export function Login() {
         <p className="login-subtitle">
           Track your LinkedIn game stats across Queens, Tango, Pinpoint, and more.
         </p>
-        <button className="login-btn" onClick={handleSignIn}>
+        <button className="login-btn" onClick={handleGoogleSignIn}>
           <GoogleIcon />
           Sign in with Google
         </button>
+        <div className="login-divider"><span>or</span></div>
+        {sent ? (
+          <p className="login-sent">Check your email — we sent a sign-in link to <strong>{email}</strong></p>
+        ) : (
+          <form className="login-magic" onSubmit={handleMagicLink}>
+            <input
+              className="login-input"
+              type="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              required
+            />
+            <button className="login-btn login-btn--magic" type="submit" disabled={sending}>
+              {sending ? 'Sending…' : 'Send magic link'}
+            </button>
+          </form>
+        )}
         <p className="login-note">
           Your data stays private. Only you can see your results.
         </p>

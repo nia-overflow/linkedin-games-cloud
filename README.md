@@ -8,7 +8,7 @@ A Playwright scraper runs nightly on your Mac, captures results from Queens, Tan
 
 ## Quickstart (for Claude Code users)
 
-> **Before you start:** Make sure your Gmail address has been added as a test user by the dashboard owner — otherwise Google sign-in will be blocked. Ask them to add you at Google Cloud Console → OAuth consent screen → Test users.
+> **Before you start:** If you plan to sign in with Google, make sure your Gmail address has been added as a test user by the dashboard owner — otherwise Google sign-in will be blocked. Ask them to add you at Google Cloud Console → OAuth consent screen → Test users. Alternatively, use the magic link option (enter your email on the sign-in page) — no Google account required.
 
 **Give this to your local Claude:**
 
@@ -50,7 +50,7 @@ pnpm setup:profile
 
 ### 3. Sign in to the dashboard
 
-**[Human step]** Open **[linkedin-games-dashboard.up.railway.app](https://linkedin-games-dashboard.up.railway.app)** and click **Sign in with Google**. Use the same Google account you want to track stats under.
+**[Human step]** Open **[linkedin-games-dashboard.up.railway.app](https://linkedin-games-dashboard.up.railway.app)** and sign in — either with Google or by entering your email to receive a magic link.
 
 ### 4. Generate an API key
 
