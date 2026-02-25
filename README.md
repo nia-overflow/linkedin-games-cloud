@@ -1,125 +1,134 @@
 # LinkedIn Games Dashboard
 
-A personal dashboard for your LinkedIn daily game results — tracks your scores, ranks you against connections, and shows history over time.
+Track your LinkedIn daily game results — scores, ranks, completion times, and 30-day history — on a hosted dashboard at **[linkedin-games-dashboard.up.railway.app](https://linkedin-games-dashboard.up.railway.app)**.
 
-No LinkedIn API required. A Playwright scraper visits the game pages each night using your saved Chrome session, captures results and leaderboard data, and stores everything locally in SQLite.
+A Playwright scraper runs nightly on your Mac, captures results from Queens, Tango, Pinpoint, Crossclimb, Zip, and Mini-Sudoku, and pushes them to the cloud. Sign in with Google to see your stats from any device.
+
+---
+
+## How it works
 
 ```
-11:55 PM → Mac wakes
-         → Scraper opens Chrome (your LinkedIn session)
-         → Visits Queens, Tango, Pinpoint, Crossclimb, Zip, Mini-Sudoku
-         → Saves scores, rank, percentile, and leaderboard to SQLite
-         → Browser closes
+11:55 PM  Mac wakes up
+          Scraper opens Chrome (your saved LinkedIn session)
+          Visits each game page, captures scores + leaderboard
+          Writes to local SQLite (offline backup)
+          Pushes data to the cloud dashboard
+          Browser closes
 
-Any time → Open http://localhost:3000
-         → See your stats, history charts, and leaderboard standings
+Any time  Open linkedin-games-dashboard.up.railway.app
+          Sign in with Google → see your stats
 ```
 
 ---
 
 ## Requirements
 
-- **macOS** (scheduling uses launchd + pmset — Windows/Linux not supported)
-- **Node.js 18+** — [nodejs.org](https://nodejs.org)
-- **A LinkedIn account** with games played
+- **macOS** (nightly scheduling uses launchd)
+- **Node.js 20+** — [nodejs.org](https://nodejs.org)
+- **pnpm** — `npm install -g pnpm`
+- A **LinkedIn account** with games played
 
 ---
 
-## Setup
+## Setup (15 min)
+
+### 1. Clone and install
 
 ```bash
-git clone https://github.com/nia-overflow/linkedin-games.git
-cd linkedin-games
-bash scripts/setup.sh
+git clone https://github.com/nia-overflow/linkedin-games-cloud.git
+cd linkedin-games-cloud
+pnpm install
+pnpm exec playwright install chromium
 ```
 
-That's it. The script will:
+### 2. Log in to LinkedIn
 
-1. Install dependencies
-2. Download Playwright's Chromium browser
-3. Build the dashboard
-4. Open Chrome so you can log in to LinkedIn (session is saved locally)
-5. Install launchd agents (server starts at login, scraper runs at 11:55 PM)
-6. Schedule a Mac wake at 11:55 PM via `pmset`
-
-When it's done, open **[http://localhost:3000](http://localhost:3000)**.
-
----
-
-## First scrape
-
-After setup, run the scraper once manually to populate your dashboard:
-
-```bash
-pnpm scrape
-```
-
-After that, it runs automatically every night at 11:55 PM.
-
----
-
-## What you see
-
-**All Games tab**
-- Today's result for each game — completion time, rank among connections, percentile
-- 30-day history chart
-- Aggregate stats: streak, win rate, avg time, avg percentile
-
-**Per-game tabs** (Queens, Tango, Pinpoint, Crossclimb, Zip, Mini-Sudoku)
-- 5 stat cards: streak · win rate · avg time (avg guesses for Pinpoint) · avg rank · avg percentile
-- Completion time history chart
-- Today's leaderboard with your connections
-
-**Dev tab** — full scrape log for debugging
-
----
-
-## Re-login
-
-LinkedIn sessions expire occasionally. If the scraper stops capturing data:
+This opens a Chrome window. Sign in to LinkedIn, then close the window.
 
 ```bash
 pnpm setup:profile
 ```
 
-This opens Chrome so you can log back in. No other changes needed.
+### 3. Sign in to the dashboard
+
+Go to **[linkedin-games-dashboard.up.railway.app](https://linkedin-games-dashboard.up.railway.app)** and click **Sign in with Google**.
+
+### 4. Generate an API key
+
+In the dashboard: **Settings → Generate API Key → Copy** the `lgk_...` key.
+
+### 5. Configure the scraper
+
+Create `~/.linkedin-games/.env`:
+
+```bash
+mkdir -p ~/.linkedin-games
+cat > ~/.linkedin-games/.env << EOF
+CLOUD_ENDPOINT=https://linkedin-games-dashboard.up.railway.app
+CLOUD_API_KEY=lgk_YOUR_KEY_HERE
+EOF
+```
+
+Replace `lgk_YOUR_KEY_HERE` with the key you copied in step 4.
+
+### 6. Run your first scrape
+
+```bash
+pnpm scrape
+```
+
+You should see `☁️ Cloud push OK` at the end. Refresh the dashboard and your stats will appear.
+
+### 7. Schedule nightly scrapes (optional but recommended)
+
+```bash
+bash scripts/install-daemons.sh
+```
+
+This installs a launchd agent that runs the scraper at 11:55 PM every night and wakes your Mac if it's asleep.
+
+---
+
+## Re-login
+
+LinkedIn sessions expire every few weeks. If the scraper stops capturing data:
+
+```bash
+pnpm setup:profile
+```
+
+Opens Chrome so you can log back in. No other changes needed.
 
 ---
 
 ## Manual commands
 
 ```bash
-pnpm scrape          # Run scraper now (captures today's results)
-pnpm dev             # Start dev server with hot reload (port 5173)
-pnpm build           # Rebuild dashboard for production
+pnpm scrape          # Run scraper now
+pnpm setup:profile   # Re-login to LinkedIn
 ```
 
 ---
 
-## Project structure
+## What you see
 
-```
-linkedin-games/
-├── scraper/src/
-│   ├── games/       # One scraper per game + shared helpers
-│   ├── db/          # SQLite schema and query functions
-│   └── index.ts     # Scraper orchestrator
-├── server/src/
-│   └── index.ts     # Express API + serves built dashboard
-├── dashboard/src/
-│   ├── components/  # StatsBar, HistoryChart, LeaderboardTable, TodayResults
-│   ├── api.ts       # API client
-│   └── App.tsx      # Main app
-└── scripts/
-    ├── setup.sh         # One-command setup
-    ├── install-daemons.sh
-    └── setup-profile.ts # LinkedIn login helper
-```
+**All Games tab** — today's result for each game + 30-day history chart + aggregate stats (streak, win rate, avg time, avg percentile)
 
-Data lives at `~/.linkedin-games/`:
-- `games.db` — SQLite database (game results, leaderboard snapshots, scrape log)
-- `chrome-profile/` — saved LinkedIn session
-- `logs/` — scraper and server logs
+**Per-game tabs** — 5 stat cards · completion time history · today's leaderboard against your connections
+
+**Community tab** — best times across all users who've opted in to the leaderboard (opt in via Settings)
+
+**Dev tab** — full scrape log for debugging
+
+---
+
+## Data & privacy
+
+- Your game data is private by default — only you can see it (enforced at the database level)
+- The Community Leaderboard is opt-in only, from the Settings page
+- Your LinkedIn session stays on your machine — it's never sent to the server
+- Local SQLite backup at `~/.linkedin-games/games.db` always kept in sync
 
 ---
 
@@ -129,13 +138,32 @@ LinkedIn occasionally changes their page structure. If you see scrape errors:
 
 1. Run `pnpm discover` to capture fresh screenshots and HTML of each game page
 2. Check `scraper/discovery/` for the current DOM structure
-3. Update selectors in `scraper/src/games/<game>.ts` if needed
+3. Update selectors in `scraper/src/games/<game>.ts`
 4. Run `pnpm scrape` to verify
 
 ---
 
-## Notes
+## Project structure
 
-- Each install is fully independent — your data never leaves your machine
-- The leaderboard only shows connections LinkedIn displays on the results page (up to ~25)
-- Percentile is calculated as: `((total shown - your rank) / total shown) × 100`
+```
+linkedin-games-cloud/
+├── scraper/src/
+│   ├── games/        # One scraper per game
+│   ├── db/           # SQLite schema and queries
+│   ├── cloud.ts      # Cloud push module
+│   └── index.ts      # Scraper orchestrator
+├── server/src/
+│   ├── middleware/   # JWT auth, API key auth
+│   ├── supabase.ts   # Supabase client
+│   └── index.ts      # Express API server
+├── dashboard/src/
+│   ├── components/   # StatsBar, Charts, Leaderboard, Login, Settings
+│   ├── hooks/        # useAuth
+│   ├── auth.ts       # Supabase browser client
+│   └── App.tsx       # Main app
+├── supabase/
+│   └── schema.sql    # Postgres schema + RLS policies
+└── scripts/
+    ├── setup-profile.ts    # LinkedIn login helper
+    └── install-daemons.sh  # launchd setup
+```
