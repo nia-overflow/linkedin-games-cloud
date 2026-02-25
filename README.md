@@ -8,6 +8,8 @@ A Playwright scraper runs nightly on your Mac, captures results from Queens, Tan
 
 ## Quickstart (for Claude Code users)
 
+> **Before you start:** Make sure your Gmail address has been added as a test user by the dashboard owner — otherwise Google sign-in will be blocked. Ask them to add you at Google Cloud Console → OAuth consent screen → Test users.
+
 **Give this to your local Claude:**
 
 > Clone https://github.com/nia-overflow/linkedin-games-cloud and set it up for me by following the README.
