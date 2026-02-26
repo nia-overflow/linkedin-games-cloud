@@ -18,6 +18,12 @@ function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1)
 }
 
+function formatLeaderboardDate(dateStr: string): string {
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  const [, mm, dd] = dateStr.split('-')
+  return `${months[parseInt(mm) - 1]} ${parseInt(dd)} Leaderboard`
+}
+
 function DevTab({ logs }: { logs: ScrapeLogEntry[] }) {
   const errors = logs.filter(e => e.status === 'error')
   return (
@@ -60,6 +66,7 @@ function DevTab({ logs }: { logs: ScrapeLogEntry[] }) {
 export default function App() {
   const { session, loading: authLoading, accessToken, signOut } = useAuth()
   const [selectedGame, setSelectedGame] = useState<string>('all')
+  const [leaderboardDate, setLeaderboardDate] = useState<string | null>(null)
   const [games, setGames] = useState<string[]>(KNOWN_GAMES)
   const [lastCapturedAt, setLastCapturedAt] = useState<string | null>(null)
   const [allLogs, setAllLogs] = useState<ScrapeLogEntry[]>([])
@@ -146,7 +153,7 @@ export default function App() {
             <button
               key={game}
               className={`tab ${selectedGame === game ? 'tab--active' : ''} ${game === 'dev' ? 'tab--dev' : ''}`}
-              onClick={() => setSelectedGame(game)}
+              onClick={() => { setSelectedGame(game); setLeaderboardDate(null) }}
               aria-pressed={selectedGame === game}
             >
               {game === 'all'
@@ -178,14 +185,25 @@ export default function App() {
               <h2 className="section-title">
                 {selectedGame === 'all' ? 'All Games History' : `${capitalize(selectedGame)} History`}
               </h2>
-              <HistoryChart game={selectedGame} />
+              <HistoryChart
+                game={selectedGame}
+                selectedDate={leaderboardDate ?? undefined}
+                onBarClick={selectedGame !== 'all' ? setLeaderboardDate : undefined}
+              />
             </section>
 
             {/* Leaderboard (only for specific games, not "all") */}
             {selectedGame !== 'all' && (
               <section className="section">
-                <h2 className="section-title">Today's Leaderboard</h2>
-                <LeaderboardTable game={selectedGame} />
+                <h2 className="section-title">
+                  {leaderboardDate ? formatLeaderboardDate(leaderboardDate) : "Today's Leaderboard"}
+                  {leaderboardDate && (
+                    <button className="leaderboard-date-reset" onClick={() => setLeaderboardDate(null)}>
+                      Today →
+                    </button>
+                  )}
+                </h2>
+                <LeaderboardTable game={selectedGame} date={leaderboardDate ?? undefined} />
               </section>
             )}
           </>

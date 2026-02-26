@@ -903,6 +903,25 @@ body {
   color: var(--text-primary);
 }
 
+/* ── Leaderboard date navigation ─────────────────────────────────────────── */
+.leaderboard-date-reset {
+  margin-left: 12px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border-accent);
+  background: transparent;
+  color: var(--accent-light);
+  font-size: 0.75rem;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  vertical-align: middle;
+  transition: background 0.15s;
+}
+
+.leaderboard-date-reset:hover {
+  background: var(--bg-elevated);
+}
+
 /* ── Community tab ────────────────────────────────────────────────────────── */
 .tab--community {
   color: var(--accent-light);

@@ -7,7 +7,8 @@ import { api } from '../api'
 import type { GameHistoryEntry } from '../api'
 
 interface ChartPoint {
-  date: string
+  date: string       // MM-DD (display)
+  fullDate: string   // YYYY-MM-DD (for click handler)
   completed: number
   missed: number
   timeSecs: number | null
@@ -16,6 +17,8 @@ interface ChartPoint {
 
 interface Props {
   game: string
+  selectedDate?: string
+  onBarClick?: (date: string) => void
 }
 
 function formatTime(secs: number | null): string {
@@ -42,7 +45,7 @@ function CustomTooltip({ active, payload, label, isPinpoint }: any) {
   )
 }
 
-export function HistoryChart({ game }: Props) {
+export function HistoryChart({ game, selectedDate, onBarClick }: Props) {
   const [history, setHistory] = useState<GameHistoryEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -91,6 +94,7 @@ export function HistoryChart({ game }: Props) {
       .slice(-30)
       .map(([date, counts]) => ({
         date: date.slice(5), // MM-DD
+        fullDate: date,
         ...counts,
         timeSecs: null,
       }))
@@ -100,6 +104,7 @@ export function HistoryChart({ game }: Props) {
       .reverse()
       .map(h => ({
         date: h.playedDate.slice(5),
+        fullDate: h.playedDate,
         completed: h.completed ? 1 : 0,
         missed: h.completed ? 0 : 1,
         // Pinpoint stores guess count in `score`; all other games store seconds in `completionTimeSecs`
@@ -138,11 +143,20 @@ export function HistoryChart({ game }: Props) {
             tickFormatter={(v) => isPinpoint ? String(v) : formatTime(v as number)}
           />
           <Tooltip content={<CustomTooltip isPinpoint={isPinpoint} />} />
-          <Bar dataKey="timeSecs" name={isPinpoint ? 'Guesses' : 'Completion Time'}>
+          <Bar
+            dataKey="timeSecs"
+            name={isPinpoint ? 'Guesses' : 'Completion Time'}
+            onClick={(data: ChartPoint) => onBarClick?.(data.fullDate)}
+            style={{ cursor: onBarClick ? 'pointer' : undefined }}
+          >
             {chartData.map((entry, index) => (
               <Cell
                 key={`cell-${index}`}
-                fill={entry.completed ? '#7c3aed' : '#2a2640'}
+                fill={
+                  entry.fullDate === selectedDate
+                    ? '#c4b5fd'
+                    : entry.completed ? '#7c3aed' : '#2a2640'
+                }
               />
             ))}
           </Bar>
