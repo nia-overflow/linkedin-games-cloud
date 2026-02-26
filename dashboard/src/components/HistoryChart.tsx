@@ -13,6 +13,7 @@ interface ChartPoint {
   missed: number
   timeSecs: number | null
   trendSecs?: number // linear regression value
+  rankVal: number | null
   gameName?: string
 }
 
@@ -22,6 +23,8 @@ interface Props {
   bestDate?: string
   onBarClick?: (date: string) => void
 }
+
+type ChartView = 'time' | 'rank'
 
 /** Compute linear regression trend values for an array of (index, value) pairs. */
 function computeTrend(points: Array<{ x: number; y: number }>): number[] {
@@ -66,10 +69,12 @@ export function HistoryChart({ game, selectedDate, bestDate, onBarClick }: Props
   const [history, setHistory] = useState<GameHistoryEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [view, setView] = useState<ChartView>('time')
 
   useEffect(() => {
     setLoading(true)
     setError(null)
+    setView('time')
     api.getHistory(game, 30)
       .then(setHistory)
       .catch(e => setError(e.message))
@@ -114,6 +119,7 @@ export function HistoryChart({ game, selectedDate, bestDate, onBarClick }: Props
         fullDate: date,
         ...counts,
         timeSecs: null,
+        rankVal: null,
       }))
   } else {
     chartData = history
@@ -126,6 +132,7 @@ export function HistoryChart({ game, selectedDate, bestDate, onBarClick }: Props
         missed: h.completed ? 0 : 1,
         // Pinpoint stores guess count in `score`; all other games store seconds in `completionTimeSecs`
         timeSecs: isPinpoint ? h.score : h.completionTimeSecs,
+        rankVal: h.myRank,
         gameName: h.gameName,
       }))
   }
@@ -161,55 +168,130 @@ export function HistoryChart({ game, selectedDate, bestDate, onBarClick }: Props
     }
   }
 
+  const hasRankData = chartData.some(d => d.rankVal != null)
+
   // Single game: color bars by completion, height by time (or guess count for Pinpoint)
   return (
     <div className="chart-container">
-      <ResponsiveContainer width="100%" height={220}>
-        <ComposedChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#2a2640" />
-          <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#8b87a8" }} />
-          <YAxis
-            tick={{ fontSize: 11, fill: "#8b87a8" }}
-            tickFormatter={(v) => isPinpoint ? String(v) : formatTime(v as number)}
-          />
-          <Tooltip content={<CustomTooltip isPinpoint={isPinpoint} />} />
-          <Bar
-            dataKey="timeSecs"
-            name={isPinpoint ? 'Guesses' : 'Completion Time'}
-            onClick={(data: ChartPoint) => onBarClick?.(data.fullDate)}
-            style={{ cursor: onBarClick ? 'pointer' : undefined }}
+      {hasRankData && (
+        <div className="chart-view-toggle">
+          <button
+            className={`chart-view-btn ${view === 'time' ? 'chart-view-btn--active' : ''}`}
+            onClick={() => setView('time')}
           >
-            {chartData.map((entry, index) => (
-              <Cell
-                key={`cell-${index}`}
-                fill={
-                  entry.fullDate === selectedDate
-                    ? '#c4b5fd'
-                    : entry.fullDate === bestDate
-                      ? '#fbbf24'
-                      : entry.completed ? '#7c3aed' : '#2a2640'
-                }
-              />
-            ))}
-          </Bar>
-          {!isPinpoint && (
-            <Line
-              type="monotone"
-              dataKey="trendSecs"
-              stroke="#f97316"
-              strokeWidth={2}
-              dot={false}
-              strokeDasharray="4 3"
-              connectNulls
-              name="Trend"
+            {isPinpoint ? 'Guesses' : 'Time'}
+          </button>
+          <button
+            className={`chart-view-btn ${view === 'rank' ? 'chart-view-btn--active' : ''}`}
+            onClick={() => setView('rank')}
+          >
+            Rank
+          </button>
+        </div>
+      )}
+
+      {view === 'time' ? (
+        <ResponsiveContainer width="100%" height={220}>
+          <ComposedChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#2a2640" />
+            <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#8b87a8" }} />
+            <YAxis
+              tick={{ fontSize: 11, fill: "#8b87a8" }}
+              tickFormatter={(v) => isPinpoint ? String(v) : formatTime(v as number)}
             />
-          )}
-        </ComposedChart>
-      </ResponsiveContainer>
+            <Tooltip content={<CustomTooltip isPinpoint={isPinpoint} />} />
+            <Bar
+              dataKey="timeSecs"
+              name={isPinpoint ? 'Guesses' : 'Completion Time'}
+              onClick={(data: ChartPoint) => onBarClick?.(data.fullDate)}
+              style={{ cursor: onBarClick ? 'pointer' : undefined }}
+            >
+              {chartData.map((entry, index) => (
+                <Cell
+                  key={`cell-${index}`}
+                  fill={
+                    entry.fullDate === selectedDate
+                      ? '#c4b5fd'
+                      : entry.fullDate === bestDate
+                        ? '#fbbf24'
+                        : entry.completed ? '#7c3aed' : '#2a2640'
+                  }
+                />
+              ))}
+            </Bar>
+            {!isPinpoint && (
+              <Line
+                type="monotone"
+                dataKey="trendSecs"
+                stroke="#f97316"
+                strokeWidth={2}
+                dot={false}
+                strokeDasharray="4 3"
+                connectNulls
+                name="Trend"
+              />
+            )}
+          </ComposedChart>
+        </ResponsiveContainer>
+      ) : (
+        <ResponsiveContainer width="100%" height={220}>
+          <BarChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#2a2640" />
+            <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#8b87a8" }} />
+            <YAxis
+              reversed
+              allowDecimals={false}
+              tick={{ fontSize: 11, fill: "#8b87a8" }}
+              label={{ value: 'Rank', angle: -90, position: 'insideLeft', fill: '#8b87a8', fontSize: 11 }}
+            />
+            <Tooltip
+              content={({ active, payload, label }) => {
+                if (!active || !payload?.length) return null
+                const rank = payload[0]?.value
+                return (
+                  <div className="chart-tooltip">
+                    <p className="chart-tooltip-date">{label}</p>
+                    <p>Rank: #{rank}</p>
+                  </div>
+                )
+              }}
+            />
+            <Bar
+              dataKey="rankVal"
+              name="Rank"
+              onClick={(data: ChartPoint) => onBarClick?.(data.fullDate)}
+              style={{ cursor: onBarClick ? 'pointer' : undefined }}
+            >
+              {chartData.map((entry, index) => (
+                <Cell
+                  key={`cell-${index}`}
+                  fill={
+                    entry.fullDate === selectedDate
+                      ? '#c4b5fd'
+                      : entry.rankVal === 1 ? '#fbbf24'
+                        : entry.completed ? '#7c3aed' : '#2a2640'
+                  }
+                />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      )}
+
       <p className="chart-legend-note">
-        <span style={{ color: '#7c3aed' }}>■</span> Completed &nbsp;
-        {bestDate && <><span style={{ color: '#fbbf24' }}>■</span> Personal best &nbsp;</>}
-        <span style={{ color: '#ccc' }}>■</span> Not played
+        {view === 'time' ? (
+          <>
+            <span style={{ color: '#7c3aed' }}>■</span> Completed &nbsp;
+            {bestDate && <><span style={{ color: '#fbbf24' }}>■</span> Personal best &nbsp;</>}
+            <span style={{ color: '#ccc' }}>■</span> Not played
+          </>
+        ) : (
+          <>
+            <span style={{ color: '#7c3aed' }}>■</span> Ranked &nbsp;
+            <span style={{ color: '#fbbf24' }}>■</span> Rank #1 &nbsp;
+            <span style={{ color: '#ccc' }}>■</span> No rank
+          </>
+        )}
       </p>
     </div>
   )
