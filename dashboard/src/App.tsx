@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { StatsBar } from './components/StatsBar'
 import { HistoryChart } from './components/HistoryChart'
+import { DayOfWeekChart } from './components/DayOfWeekChart'
 import { LeaderboardTable } from './components/LeaderboardTable'
 import { StalenessWarning } from './components/StalenessWarning'
 import { TodayResults } from './components/TodayResults'
@@ -201,6 +202,14 @@ export default function App() {
                 onBarClick={selectedGame !== 'all' ? setLeaderboardDate : undefined}
               />
             </section>
+
+            {/* Day-of-week breakdown — only for specific games */}
+            {selectedGame !== 'all' && (
+              <section className="section">
+                <h2 className="section-title">By Day of Week</h2>
+                <DayOfWeekChart game={selectedGame} />
+              </section>
+            )}
 
             {/* Leaderboard (only for specific games, not "all") */}
             {selectedGame !== 'all' && (
