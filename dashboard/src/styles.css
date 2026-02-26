@@ -304,6 +304,95 @@ body {
   background: var(--accent-dim);
 }
 
+/* ── Calendar heatmap ────────────────────────────────────────────────────── */
+.heatmap {
+  user-select: none;
+}
+
+.heatmap-skeleton {
+  height: 120px;
+  border-radius: var(--radius-sm);
+}
+
+.heatmap-months {
+  display: grid;
+  grid-template-columns: 24px repeat(auto-fill, 14px);
+  gap: 0 3px;
+  margin-bottom: 4px;
+  padding-left: 28px;
+}
+
+.heatmap-month-label {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+}
+
+.heatmap-grid {
+  display: flex;
+  gap: 3px;
+  align-items: flex-start;
+}
+
+.heatmap-days {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-top: 1px;
+}
+
+.heatmap-day-label {
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  width: 10px;
+  text-align: right;
+  line-height: 12px;
+  height: 12px;
+}
+
+.heatmap-week {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.heatmap-cell {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  transition: opacity 0.1s;
+}
+
+.heatmap-cell:hover {
+  opacity: 0.8;
+  cursor: default;
+}
+
+.heatmap-cell--today {
+  box-shadow: 0 0 0 1.5px var(--accent-light);
+}
+
+.heatmap-cell--legend {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+  vertical-align: middle;
+}
+
+.heatmap-legend {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 8px;
+  justify-content: flex-end;
+}
+
+.heatmap-legend-label {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  margin: 0 2px;
+}
+
 .chart-legend-note {
   text-align: center;
   font-size: 0.72rem;

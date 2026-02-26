@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { StatsBar } from './components/StatsBar'
 import { HistoryChart } from './components/HistoryChart'
 import { DayOfWeekChart } from './components/DayOfWeekChart'
+import { CalendarHeatmap } from './components/CalendarHeatmap'
 import { LeaderboardTable } from './components/LeaderboardTable'
 import { StalenessWarning } from './components/StalenessWarning'
 import { TodayResults } from './components/TodayResults'
@@ -187,6 +188,14 @@ export default function App() {
               <section className="section">
                 <h2 className="section-title">Today's Results</h2>
                 <TodayResults games={games} />
+              </section>
+            )}
+
+            {/* Calendar heatmap — only on All Games tab */}
+            {selectedGame === 'all' && (
+              <section className="section">
+                <h2 className="section-title">Completion Streak</h2>
+                <CalendarHeatmap />
               </section>
             )}
 
