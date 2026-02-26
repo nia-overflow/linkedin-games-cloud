@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  ComposedChart, BarChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell, Legend,
 } from 'recharts'
 import { api } from '../api'
@@ -12,6 +12,7 @@ interface ChartPoint {
   completed: number
   missed: number
   timeSecs: number | null
+  trendSecs?: number // linear regression value
   gameName?: string
 }
 
@@ -20,6 +21,21 @@ interface Props {
   selectedDate?: string
   bestDate?: string
   onBarClick?: (date: string) => void
+}
+
+/** Compute linear regression trend values for an array of (index, value) pairs. */
+function computeTrend(points: Array<{ x: number; y: number }>): number[] {
+  const n = points.length
+  if (n < 2) return points.map(p => p.y)
+  const sumX  = points.reduce((a, p) => a + p.x, 0)
+  const sumY  = points.reduce((a, p) => a + p.y, 0)
+  const sumXY = points.reduce((a, p) => a + p.x * p.y, 0)
+  const sumX2 = points.reduce((a, p) => a + p.x * p.x, 0)
+  const denom = n * sumX2 - sumX * sumX
+  if (denom === 0) return points.map(() => sumY / n)
+  const slope     = (n * sumXY - sumX * sumY) / denom
+  const intercept = (sumY - slope * sumX) / n
+  return points.map(p => Math.max(0, Math.round(slope * p.x + intercept)))
 }
 
 function formatTime(secs: number | null): string {
@@ -132,11 +148,24 @@ export function HistoryChart({ game, selectedDate, bestDate, onBarClick }: Props
     )
   }
 
+  // Compute trend line from completed data points (not for Pinpoint — guesses don't trend linearly)
+  if (!isPinpoint) {
+    const completedPoints = chartData
+      .map((d, i) => (d.completed && d.timeSecs != null ? { x: i, y: d.timeSecs } : null))
+      .filter((p): p is { x: number; y: number } => p !== null)
+    if (completedPoints.length >= 3) {
+      const trendValues = computeTrend(completedPoints)
+      completedPoints.forEach((p, i) => {
+        chartData[p.x] = { ...chartData[p.x]!, trendSecs: trendValues[i] }
+      })
+    }
+  }
+
   // Single game: color bars by completion, height by time (or guess count for Pinpoint)
   return (
     <div className="chart-container">
       <ResponsiveContainer width="100%" height={220}>
-        <BarChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+        <ComposedChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#2a2640" />
           <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#8b87a8" }} />
           <YAxis
@@ -163,7 +192,19 @@ export function HistoryChart({ game, selectedDate, bestDate, onBarClick }: Props
               />
             ))}
           </Bar>
-        </BarChart>
+          {!isPinpoint && (
+            <Line
+              type="monotone"
+              dataKey="trendSecs"
+              stroke="#f97316"
+              strokeWidth={2}
+              dot={false}
+              strokeDasharray="4 3"
+              connectNulls
+              name="Trend"
+            />
+          )}
+        </ComposedChart>
       </ResponsiveContainer>
       <p className="chart-legend-note">
         <span style={{ color: '#7c3aed' }}>■</span> Completed &nbsp;
