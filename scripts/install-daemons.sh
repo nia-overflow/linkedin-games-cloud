@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 # install-daemons.sh
 #
-# Installs the LinkedIn Games launchd agents and schedules a Mac wake at 11:55 PM.
+# Installs the LinkedIn Games launchd agents and schedules a Mac wake.
 # Run this once after setup.
 #
 # Usage:
-#   bash scripts/install-daemons.sh
+#   bash scripts/install-daemons.sh           # nightly scrape at 11:55 PM (default)
+#   bash scripts/install-daemons.sh --morning  # morning scrape at 8:00 AM instead
+#   bash scripts/install-daemons.sh --both     # install both schedules
 
 set -euo pipefail
 
@@ -29,11 +31,22 @@ LOGS_DIR="$HOME/.linkedin-games/logs"
 PNPM_PATH="$(which pnpm || echo '/opt/homebrew/bin/pnpm')"
 NODE_PATH="$(which node || echo '/opt/homebrew/bin/node')"
 
+# ── Parse flags ───────────────────────────────────────────────────────────────
+INSTALL_MORNING=false
+INSTALL_NIGHTLY=true
+for arg in "$@"; do
+  case $arg in
+    --morning) INSTALL_MORNING=true; INSTALL_NIGHTLY=false ;;
+    --both)    INSTALL_MORNING=true; INSTALL_NIGHTLY=true  ;;
+  esac
+done
+
 echo "LinkedIn Games — Install Daemons"
 echo "================================="
 echo "Project dir: $PROJECT_DIR"
 echo "pnpm:        $PNPM_PATH"
 echo "node:        $NODE_PATH"
+echo "Schedule:    $([ "$INSTALL_MORNING" = true ] && [ "$INSTALL_NIGHTLY" = true ] && echo "8:00 AM + 11:55 PM" || ([ "$INSTALL_MORNING" = true ] && echo "8:00 AM" || echo "11:55 PM"))"
 echo ""
 
 # ── Create logs directory ─────────────────────────────────────────────────────
@@ -41,7 +54,11 @@ mkdir -p "$LOGS_DIR"
 ok "Logs directory: $LOGS_DIR"
 
 # ── Install plists ────────────────────────────────────────────────────────────
-for PLIST_NAME in com.linkedingames.scraper com.linkedingames.server; do
+SCRAPER_PLISTS=()
+[ "$INSTALL_NIGHTLY" = true ] && SCRAPER_PLISTS+=("com.linkedingames.scraper")
+[ "$INSTALL_MORNING" = true ] && SCRAPER_PLISTS+=("com.linkedingames.scraper-morning")
+
+for PLIST_NAME in "${SCRAPER_PLISTS[@]}" com.linkedingames.server; do
   SRC="$PLIST_DIR/${PLIST_NAME}.plist"
   DST="$LAUNCH_AGENTS_DIR/${PLIST_NAME}.plist"
 
@@ -64,13 +81,20 @@ for PLIST_NAME in com.linkedingames.scraper com.linkedingames.server; do
   ok "Installed and loaded: $PLIST_NAME"
 done
 
-# ── Schedule Mac wake at 11:55 PM ─────────────────────────────────────────────
+# ── Schedule Mac wake ─────────────────────────────────────────────────────────
 echo ""
-echo "Scheduling Mac wake at 11:55 PM nightly..."
+WAKE_TIME="23:55:00"
+WAKE_LABEL="11:55 PM"
+if [ "$INSTALL_MORNING" = true ] && [ "$INSTALL_NIGHTLY" = false ]; then
+  WAKE_TIME="07:55:00"
+  WAKE_LABEL="7:55 AM (5 min before 8 AM scrape)"
+fi
+
+echo "Scheduling Mac wake at $WAKE_LABEL nightly..."
 echo "This requires sudo (for pmset):"
 
-if sudo pmset repeat wakeorpoweron MTWRFSU 23:55:00; then
-  ok "Mac will wake at 11:55 PM every day to run the scraper."
+if sudo pmset repeat wakeorpoweron MTWRFSU "$WAKE_TIME"; then
+  ok "Mac will wake at $WAKE_LABEL every day to run the scraper."
 else
   warn "pmset failed. Your Mac may need to be plugged in for scheduled wake."
   warn "You can manually set this in: System Settings > Battery > Schedule"
@@ -91,7 +115,7 @@ echo ""
 ok "Setup complete!"
 echo ""
 echo "  Dashboard:  https://linkedin-games-dashboard.up.railway.app"
-echo "  Scraper runs at: 11:55 PM daily"
+echo "  Scraper runs at: $([ "$INSTALL_MORNING" = true ] && [ "$INSTALL_NIGHTLY" = true ] && echo "8:00 AM + 11:55 PM" || ([ "$INSTALL_MORNING" = true ] && echo "8:00 AM" || echo "11:55 PM")) daily"
 echo "  Logs: $LOGS_DIR"
 echo ""
 echo "To manually trigger a scrape:"
