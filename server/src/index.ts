@@ -172,26 +172,28 @@ function computeStats(game: string, rows: any[]) {
   ].sort().reverse();
 
   let streak = 0;
-  const today = new Date();
+  const now = new Date();
+  const todayStr     = localDateStr(now);
+  const yesterdayDate = new Date(now);
+  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+  const yesterdayStr = localDateStr(yesterdayDate);
 
-  for (let i = 0; i < completedDates.length; i++) {
-    const expected = new Date(today);
-    expected.setDate(expected.getDate() - i);
-    const expectedStr = localDateStr(expected);
+  // offset=0: streak can include today; offset=1: most recent completed day is yesterday
+  let offset = -1;
+  if (completedDates.length > 0) {
+    if (completedDates[0] === todayStr)     offset = 0;
+    else if (completedDates[0] === yesterdayStr) offset = 1;
+  }
 
-    if (completedDates[i] === expectedStr) {
-      streak++;
-    } else {
-      if (i === 0) {
-        const yesterday = new Date(today);
-        yesterday.setDate(yesterday.getDate() - 1);
-        const yesterdayStr = localDateStr(yesterday);
-        if (completedDates[0] === yesterdayStr) {
-          streak++;
-          continue;
-        }
+  if (offset >= 0) {
+    for (let i = 0; i < completedDates.length; i++) {
+      const expected = new Date(now);
+      expected.setDate(expected.getDate() - (i + offset));
+      if (completedDates[i] === localDateStr(expected)) {
+        streak++;
+      } else {
+        break;
       }
-      break;
     }
   }
 

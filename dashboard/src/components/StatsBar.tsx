@@ -30,7 +30,7 @@ export function StatsBar({ game }: Props) {
     setLoading(true)
     setError(null)
     setBests(null)
-    const statsPromise = api.getStats(game, 30).then(setStats)
+    const statsPromise = api.getStats(game, 365).then(setStats)
     const bestsPromise = game !== 'all'
       ? api.getBests(game).then(setBests).catch(() => {})
       : Promise.resolve()
