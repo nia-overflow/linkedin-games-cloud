@@ -6,6 +6,27 @@ interface Props {
   games: string[]
 }
 
+function generateShareText(byGame: Map<string, GameHistoryEntry>, games: string[]): string {
+  const d = new Date()
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  const dateStr = `${months[d.getMonth()]} ${d.getDate()}`
+  const lines = [`LinkedIn Games · ${dateStr}`, '─────────────────────']
+  for (const game of games) {
+    const entry = byGame.get(game)
+    const label = capitalize(game).padEnd(13)
+    if (!entry) {
+      lines.push(`${label} —`)
+    } else if (!entry.completed) {
+      lines.push(`${label} ✗`)
+    } else {
+      const score = getTimeLabel(game, entry)
+      const rank = entry.myRank ? `  #${entry.myRank}` : ''
+      lines.push(`${label} ${score}${rank}`)
+    }
+  }
+  return lines.join('\n')
+}
+
 /** Format seconds as M:SS */
 function formatTime(secs: number): string {
   const m = Math.floor(secs / 60)
@@ -22,6 +43,7 @@ function todayLocal(): string {
 export function TodayResults({ games }: Props) {
   const [entries, setEntries] = useState<GameHistoryEntry[]>([])
   const [loading, setLoading] = useState(true)
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     setLoading(true)
@@ -53,7 +75,18 @@ export function TodayResults({ games }: Props) {
     }
   }
 
+  function handleCopy() {
+    const text = generateShareText(byGame, games)
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
+  const hasAnyResult = games.some(g => byGame.has(g))
+
   return (
+    <>
     <div className="today-results">
       {games.map(game => {
         const entry = byGame.get(game)
@@ -92,6 +125,14 @@ export function TodayResults({ games }: Props) {
         )
       })}
     </div>
+    {hasAnyResult && (
+      <div className="share-row">
+        <button className="share-btn" onClick={handleCopy}>
+          {copied ? '✓ Copied!' : '⎘ Copy Results'}
+        </button>
+      </div>
+    )}
+    </>
   )
 }
 

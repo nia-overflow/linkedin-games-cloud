@@ -486,6 +486,29 @@ body {
   }
 }
 
+/* ── Share card ──────────────────────────────────────────────────────────── */
+.share-row {
+  margin-top: 14px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.share-btn {
+  padding: 6px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--border-accent);
+  background: transparent;
+  color: var(--accent-light);
+  font-size: 0.8rem;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.share-btn:hover {
+  background: var(--accent-dim);
+}
+
 /* ── Today's Results cards ───────────────────────────────────────────────── */
 .today-results {
   display: flex;
