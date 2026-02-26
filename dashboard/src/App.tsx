@@ -7,6 +7,7 @@ import { TodayResults } from './components/TodayResults'
 import { Login } from './components/Login'
 import { Settings } from './components/Settings'
 import { api, setTokenProvider } from './api'
+import type { PersonalBests } from './api'
 import { isAuthEnabled } from './auth'
 import { useAuth } from './hooks/useAuth'
 import type { ScrapeLogEntry } from './api'
@@ -67,6 +68,7 @@ export default function App() {
   const { session, loading: authLoading, accessToken, signOut } = useAuth()
   const [selectedGame, setSelectedGame] = useState<string>('all')
   const [leaderboardDate, setLeaderboardDate] = useState<string | null>(null)
+  const [bests, setBests] = useState<PersonalBests | null>(null)
   const [games, setGames] = useState<string[]>(KNOWN_GAMES)
   const [lastCapturedAt, setLastCapturedAt] = useState<string | null>(null)
   const [allLogs, setAllLogs] = useState<ScrapeLogEntry[]>([])
@@ -76,6 +78,13 @@ export default function App() {
   useEffect(() => {
     setTokenProvider(() => accessToken)
   }, [accessToken])
+
+  // Fetch personal bests when game tab changes
+  useEffect(() => {
+    if (selectedGame === 'all' || selectedGame === 'dev') { setBests(null); return }
+    if (isAuthEnabled && !session) return
+    api.getBests(selectedGame).then(setBests).catch(() => setBests(null))
+  }, [selectedGame, session])
 
   useEffect(() => {
     // Only fetch data if we're not in auth-required mode, or if we have a session
@@ -153,7 +162,7 @@ export default function App() {
             <button
               key={game}
               className={`tab ${selectedGame === game ? 'tab--active' : ''} ${game === 'dev' ? 'tab--dev' : ''}`}
-              onClick={() => { setSelectedGame(game); setLeaderboardDate(null) }}
+              onClick={() => { setSelectedGame(game); setLeaderboardDate(null); setBests(null) }}
               aria-pressed={selectedGame === game}
             >
               {game === 'all'
@@ -188,6 +197,7 @@ export default function App() {
               <HistoryChart
                 game={selectedGame}
                 selectedDate={leaderboardDate ?? undefined}
+                bestDate={bests?.bestTimeDate ?? bests?.bestScoreDate ?? undefined}
                 onBarClick={selectedGame !== 'all' ? setLeaderboardDate : undefined}
               />
             </section>

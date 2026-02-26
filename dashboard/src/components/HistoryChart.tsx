@@ -18,6 +18,7 @@ interface ChartPoint {
 interface Props {
   game: string
   selectedDate?: string
+  bestDate?: string
   onBarClick?: (date: string) => void
 }
 
@@ -45,7 +46,7 @@ function CustomTooltip({ active, payload, label, isPinpoint }: any) {
   )
 }
 
-export function HistoryChart({ game, selectedDate, onBarClick }: Props) {
+export function HistoryChart({ game, selectedDate, bestDate, onBarClick }: Props) {
   const [history, setHistory] = useState<GameHistoryEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -155,7 +156,9 @@ export function HistoryChart({ game, selectedDate, onBarClick }: Props) {
                 fill={
                   entry.fullDate === selectedDate
                     ? '#c4b5fd'
-                    : entry.completed ? '#7c3aed' : '#2a2640'
+                    : entry.fullDate === bestDate
+                      ? '#fbbf24'
+                      : entry.completed ? '#7c3aed' : '#2a2640'
                 }
               />
             ))}
@@ -164,6 +167,7 @@ export function HistoryChart({ game, selectedDate, onBarClick }: Props) {
       </ResponsiveContainer>
       <p className="chart-legend-note">
         <span style={{ color: '#7c3aed' }}>■</span> Completed &nbsp;
+        {bestDate && <><span style={{ color: '#fbbf24' }}>■</span> Personal best &nbsp;</>}
         <span style={{ color: '#ccc' }}>■</span> Not played
       </p>
     </div>

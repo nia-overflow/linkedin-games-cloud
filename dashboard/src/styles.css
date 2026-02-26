@@ -243,6 +243,13 @@ body {
   margin-top: 8px;
 }
 
+.stat-pb {
+  font-size: 0.68rem;
+  color: var(--warn);
+  margin-top: 5px;
+  opacity: 0.85;
+}
+
 .stat-sub {
   font-size: 0.72rem;
   color: var(--text-muted);

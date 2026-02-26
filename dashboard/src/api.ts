@@ -90,6 +90,17 @@ export interface CommunityEntry {
   completed: boolean
 }
 
+export interface PersonalBests {
+  bestTimeSecs: number | null
+  bestTimeDate: string | null
+  bestRank: number | null
+  bestRankDate: string | null
+  bestPercentile: number | null
+  bestPercentileDate: string | null
+  bestScore: number | null
+  bestScoreDate: string | null
+}
+
 export interface ApiKeyInfo {
   hasKey: boolean
   label?: string
@@ -131,6 +142,9 @@ export const api = {
 
   getStats: (game: string, days = 30) =>
     get<GameStats>('/stats', { game, days: String(days) }),
+
+  getBests: (game: string) =>
+    get<PersonalBests>('/bests', { game }),
 
   getHistory: (game: string, days = 30) =>
     get<GameHistoryEntry[]>('/history', { game, days: String(days) }),

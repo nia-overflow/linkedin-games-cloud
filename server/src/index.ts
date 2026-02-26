@@ -395,6 +395,64 @@ app.get('/api/games', requireAuth, async (req, res) => {
   }
 });
 
+// ── /api/bests ────────────────────────────────────────────────────────────────
+// Returns all-time personal best for each tracked metric for a given game.
+
+app.get('/api/bests', requireAuth, async (req, res) => {
+  try {
+    const game = req.query['game'] as string;
+    if (!game || game === 'all') return res.status(400).json({ error: 'specific game required' });
+
+    // Query all history (up to 365 days) to find true all-time bests
+    const rows = await dbGetResults(req.userId, game, 365);
+    const completed = rows.filter((r: { completed: boolean }) => r.completed);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let bestTime:       { secs: number;  date: string } | null = null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let bestRank:       { rank: number;  date: string } | null = null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let bestPercentile: { pct: number;   date: string } | null = null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let bestScore:      { score: number; date: string } | null = null;
+
+    for (const r of completed as Array<{
+      completion_time_secs: number | null;
+      my_rank: number | null;
+      global_percentile: number | null;
+      score: number | null;
+      played_date: string;
+    }>) {
+      if (r.completion_time_secs != null && (!bestTime || r.completion_time_secs < bestTime.secs)) {
+        bestTime = { secs: r.completion_time_secs, date: r.played_date };
+      }
+      if (r.my_rank != null && (!bestRank || r.my_rank < bestRank.rank)) {
+        bestRank = { rank: r.my_rank, date: r.played_date };
+      }
+      if (r.global_percentile != null && (!bestPercentile || r.global_percentile < bestPercentile.pct)) {
+        bestPercentile = { pct: r.global_percentile, date: r.played_date };
+      }
+      if (r.score != null && (!bestScore || r.score < bestScore.score)) {
+        bestScore = { score: r.score, date: r.played_date };
+      }
+    }
+
+    return res.json({
+      bestTimeSecs:      bestTime?.secs       ?? null,
+      bestTimeDate:      bestTime?.date       ?? null,
+      bestRank:          bestRank?.rank       ?? null,
+      bestRankDate:      bestRank?.date       ?? null,
+      bestPercentile:    bestPercentile?.pct  ?? null,
+      bestPercentileDate:bestPercentile?.date ?? null,
+      bestScore:         bestScore?.score     ?? null,
+      bestScoreDate:     bestScore?.date      ?? null,
+    });
+  } catch (err) {
+    console.error('/api/bests error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // ── /api/ingest ───────────────────────────────────────────────────────────────
 // Authenticated by API key (X-API-Key header).
 // Accepts bulk scraper output and upserts into Supabase.
