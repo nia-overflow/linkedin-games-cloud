@@ -675,6 +675,166 @@ app.post('/api/user/settings', requireAuth, async (req, res) => {
   }
 });
 
+// ── /api/rivals ───────────────────────────────────────────────────────────────
+// Returns per-connection win rates over the past 90 days for a given game.
+
+app.get('/api/rivals', requireAuth, async (req, res) => {
+  try {
+    const game = req.query['game'] as string;
+    if (!game) return res.status(400).json({ error: 'game query param required' });
+
+    const rows = await dbGetResults(req.userId, game, 90);
+    const selfRows = rows.filter((r: { completed: boolean; my_rank: number | null; played_date: string }) =>
+      r.completed && r.my_rank != null
+    ) as Array<{ played_date: string; my_rank: number }>;
+
+    // Build a map of date → your rank
+    const myRankByDate = new Map<string, number>();
+    for (const r of selfRows) myRankByDate.set(r.played_date, r.my_rank);
+
+    if (myRankByDate.size === 0) return res.json([]);
+
+    // Fetch all leaderboard entries for this game across those dates
+    const dates = [...myRankByDate.keys()];
+
+    let leaderboardRows: Array<{
+      connection_name: string;
+      played_date: string;
+      rank: number | null;
+      is_self: boolean;
+    }> = [];
+
+    if (isCloudMode && req.userId && supabase) {
+      const { data, error } = await supabase
+        .from('leaderboard_entries')
+        .select('connection_name, played_date, rank, is_self')
+        .eq('user_id', req.userId)
+        .eq('game_name', game)
+        .in('played_date', dates)
+        .not('rank', 'is', null);
+      if (error) throw error;
+      leaderboardRows = data ?? [];
+    } else {
+      // Local SQLite — query across all fetched dates
+      for (const date of dates) {
+        const dayRows = getLeaderboard(game, date) as Array<{
+          connection_name: string; played_date: string; rank: number | null; is_self: number;
+        }>;
+        leaderboardRows.push(...dayRows.map(r => ({
+          connection_name: r.connection_name,
+          played_date: r.played_date,
+          rank: r.rank,
+          is_self: Boolean(r.is_self),
+        })));
+      }
+    }
+
+    // Aggregate win rates per connection
+    const stats = new Map<string, { wins: number; total: number }>();
+    for (const entry of leaderboardRows) {
+      if (entry.is_self || entry.rank == null) continue;
+      const myRank = myRankByDate.get(entry.played_date);
+      if (myRank == null) continue;
+
+      if (!stats.has(entry.connection_name)) stats.set(entry.connection_name, { wins: 0, total: 0 });
+      const s = stats.get(entry.connection_name)!;
+      s.total++;
+      if (myRank < entry.rank) s.wins++;
+    }
+
+    const result = [...stats.entries()]
+      .map(([name, { wins, total }]) => ({
+        connectionName: name,
+        wins,
+        total,
+        winRate: Math.round((wins / total) * 100),
+      }))
+      .filter(r => r.total >= 3)
+      .sort((a, b) => b.winRate - a.winRate);
+
+    return res.json(result);
+  } catch (err) {
+    console.error('/api/rivals error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ── /api/headtohead ───────────────────────────────────────────────────────────
+// Returns per-date comparison between you and a named connection.
+
+app.get('/api/headtohead', requireAuth, async (req, res) => {
+  try {
+    const game = req.query['game'] as string;
+    const name = req.query['name'] as string;
+    if (!game || !name) return res.status(400).json({ error: 'game and name required' });
+
+    const rows = await dbGetResults(req.userId, game, 90);
+    const myRankByDate = new Map<string, number>();
+    for (const r of rows as Array<{ completed: boolean; my_rank: number | null; played_date: string }>) {
+      if (r.completed && r.my_rank != null) myRankByDate.set(r.played_date, r.my_rank);
+    }
+
+    const dates = [...myRankByDate.keys()];
+    if (dates.length === 0) return res.json([]);
+
+    let leaderboardRows: Array<{
+      connection_name: string; played_date: string; rank: number | null;
+      completion_time_secs: number | null; score: number | null;
+    }> = [];
+
+    if (isCloudMode && req.userId && supabase) {
+      const { data, error } = await supabase
+        .from('leaderboard_entries')
+        .select('connection_name, played_date, rank, completion_time_secs, score')
+        .eq('user_id', req.userId)
+        .eq('game_name', game)
+        .eq('connection_name', name)
+        .in('played_date', dates);
+      if (error) throw error;
+      leaderboardRows = data ?? [];
+    } else {
+      for (const date of dates) {
+        const dayRows = getLeaderboard(game, date) as Array<{
+          connection_name: string; played_date: string; rank: number | null;
+          completion_time_secs: number | null; score: number | null;
+        }>;
+        leaderboardRows.push(...dayRows.filter(r => r.connection_name === name));
+      }
+    }
+
+    // Fetch my own times from game_results
+    const myTimeByDate = new Map<string, { timeSecs: number | null; score: number | null }>();
+    for (const r of rows as Array<{
+      played_date: string; completion_time_secs: number | null; score: number | null;
+    }>) {
+      myTimeByDate.set(r.played_date, { timeSecs: r.completion_time_secs, score: r.score });
+    }
+
+    const h2h = leaderboardRows
+      .filter(r => r.rank != null)
+      .map(r => {
+        const myRank = myRankByDate.get(r.played_date)!;
+        const myData = myTimeByDate.get(r.played_date);
+        return {
+          playedDate: r.played_date,
+          myRank,
+          theirRank: r.rank,
+          youWon: myRank < r.rank!,
+          myTimeSecs: myData?.timeSecs ?? null,
+          myScore: myData?.score ?? null,
+          theirTimeSecs: r.completion_time_secs,
+          theirScore: r.score,
+        };
+      })
+      .sort((a, b) => b.playedDate.localeCompare(a.playedDate));
+
+    return res.json(h2h);
+  } catch (err) {
+    console.error('/api/headtohead error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // ── /api/community/leaderboard ────────────────────────────────────────────────
 // Returns best times for opted-in users on a given game+date.
 // Uses service-role key to query across users (bypasses RLS intentionally).

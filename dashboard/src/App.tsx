@@ -4,6 +4,7 @@ import { HistoryChart } from './components/HistoryChart'
 import { DayOfWeekChart } from './components/DayOfWeekChart'
 import { CalendarHeatmap } from './components/CalendarHeatmap'
 import { LeaderboardTable } from './components/LeaderboardTable'
+import { RivalsTable } from './components/RivalsTable'
 import { StalenessWarning } from './components/StalenessWarning'
 import { TodayResults } from './components/TodayResults'
 import { Login } from './components/Login'
@@ -232,6 +233,14 @@ export default function App() {
                   )}
                 </h2>
                 <LeaderboardTable game={selectedGame} date={leaderboardDate ?? undefined} />
+              </section>
+            )}
+
+            {/* Rivals — only for specific games */}
+            {selectedGame !== 'all' && (
+              <section className="section">
+                <h2 className="section-title">Win Rate vs Connections</h2>
+                <RivalsTable game={selectedGame} />
               </section>
             )}
           </>

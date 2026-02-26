@@ -1065,6 +1065,184 @@ body {
   background: var(--bg-elevated);
 }
 
+/* ── Rivals table ────────────────────────────────────────────────────────── */
+.rivals-table {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rivals-row {
+  display: grid;
+  grid-template-columns: 160px 1fr 40px 60px;
+  align-items: center;
+  gap: 10px;
+}
+
+.rivals-name {
+  background: none;
+  border: none;
+  color: var(--accent-light);
+  font-size: 0.85rem;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  text-align: left;
+  padding: 0;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 3px;
+}
+
+.rivals-name:hover {
+  color: var(--text-primary);
+}
+
+.rivals-bar-wrap {
+  height: 6px;
+  background: var(--bg-elevated);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.rivals-bar {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.rivals-pct {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: right;
+}
+
+.rivals-record {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+.rivals-empty,
+.rivals-placeholder {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+/* ── Head-to-head modal ───────────────────────────────────────────────────── */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  backdrop-filter: blur(4px);
+}
+
+.modal {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-accent);
+  border-radius: var(--radius);
+  padding: 28px;
+  max-width: 560px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow);
+}
+
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.modal-title {
+  font-family: var(--font-serif);
+  font-size: 1.2rem;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.modal-subtitle {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+}
+
+.modal-close:hover {
+  color: var(--text-primary);
+}
+
+.modal-empty {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.h2h-record {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 20px 0;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.h2h-score {
+  text-align: center;
+}
+
+.h2h-score-num {
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.h2h-score--you .h2h-score-num { color: var(--accent-light); }
+.h2h-score--them .h2h-score-num { color: var(--text-secondary); }
+
+.h2h-score-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
+.h2h-vs {
+  font-size: 1.4rem;
+  color: var(--text-muted);
+}
+
+.h2h-table-wrapper {
+  overflow-x: auto;
+}
+
+.h2h-row--win td:last-child { color: var(--success); }
+.h2h-row--loss td:last-child { color: var(--error); }
+
+.h2h-rank {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-left: 2px;
+}
+
 /* ── Community tab ────────────────────────────────────────────────────────── */
 .tab--community {
   color: var(--accent-light);

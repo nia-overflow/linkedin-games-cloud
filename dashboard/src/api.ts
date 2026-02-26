@@ -78,6 +78,24 @@ export interface UserSettings {
   global_leaderboard_opt_in: boolean
 }
 
+export interface RivalEntry {
+  connectionName: string
+  wins: number
+  total: number
+  winRate: number
+}
+
+export interface HeadToHeadEntry {
+  playedDate: string
+  myRank: number
+  theirRank: number | null
+  youWon: boolean
+  myTimeSecs: number | null
+  myScore: number | null
+  theirTimeSecs: number | null
+  theirScore: number | null
+}
+
 export interface CommunityEntry {
   displayName: string
   isCurrentUser: boolean
@@ -174,6 +192,14 @@ export const api = {
 
   generateApiKey: () =>
     post<{ key: string }>('/user/api-key'),
+
+  // ── Rivals / head-to-head ─────────────────────────────────────────────────
+
+  getRivals: (game: string) =>
+    get<RivalEntry[]>('/rivals', { game }),
+
+  getHeadToHead: (game: string, name: string) =>
+    get<HeadToHeadEntry[]>('/headtohead', { game, name }),
 
   // ── Community leaderboard ─────────────────────────────────────────────────
 
