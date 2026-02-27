@@ -704,12 +704,14 @@ app.get('/api/rivals', requireAuth, async (req, res) => {
       played_date: string;
       rank: number | null;
       is_self: boolean;
+      completion_time_secs: number | null;
+      score: number | null;
     }> = [];
 
     if (isCloudMode && req.userId && supabase) {
       const { data, error } = await supabase
         .from('leaderboard_entries')
-        .select('connection_name, played_date, rank, is_self')
+        .select('connection_name, played_date, rank, is_self, completion_time_secs, score')
         .eq('user_id', req.userId)
         .eq('game_name', game)
         .in('played_date', dates)
@@ -721,12 +723,15 @@ app.get('/api/rivals', requireAuth, async (req, res) => {
       for (const date of dates) {
         const dayRows = getLeaderboard(game, date) as Array<{
           connection_name: string; played_date: string; rank: number | null; is_self: number;
+          completion_time_secs: number | null; score: number | null;
         }>;
         leaderboardRows.push(...dayRows.map(r => ({
           connection_name: r.connection_name,
           played_date: r.played_date,
           rank: r.rank,
           is_self: Boolean(r.is_self),
+          completion_time_secs: r.completion_time_secs,
+          score: r.score,
         })));
       }
     }
@@ -735,6 +740,7 @@ app.get('/api/rivals', requireAuth, async (req, res) => {
     const stats = new Map<string, { wins: number; total: number }>();
     for (const entry of leaderboardRows) {
       if (entry.is_self || entry.rank == null) continue;
+      if (entry.completion_time_secs == null && entry.score == null) continue;
       const myRank = myRankByDate.get(entry.played_date);
       if (myRank == null) continue;
 
@@ -813,7 +819,7 @@ app.get('/api/headtohead', requireAuth, async (req, res) => {
     }
 
     const h2h = leaderboardRows
-      .filter(r => r.rank != null)
+      .filter(r => r.rank != null && (r.completion_time_secs != null || r.score != null))
       .map(r => {
         const myRank = myRankByDate.get(r.played_date)!;
         const myData = myTimeByDate.get(r.played_date);

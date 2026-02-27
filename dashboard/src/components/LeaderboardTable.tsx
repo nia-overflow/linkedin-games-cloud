@@ -69,6 +69,8 @@ export function LeaderboardTable({ game, date }: Props) {
     return '—'
   }
 
+  const visibleEntries = entries.filter(e => e.completionTimeSecs !== null || e.score !== null || e.isSelf)
+
   return (
     <div className="leaderboard">
       <table className="leaderboard-table">
@@ -80,7 +82,7 @@ export function LeaderboardTable({ game, date }: Props) {
           </tr>
         </thead>
         <tbody>
-          {entries.map(entry => (
+          {visibleEntries.map(entry => (
             <tr
               key={entry.id}
               className={`leaderboard-row ${entry.isSelf ? 'leaderboard-row--self' : ''}`}
@@ -108,7 +110,7 @@ export function LeaderboardTable({ game, date }: Props) {
         </tbody>
       </table>
       <p className="leaderboard-date">
-        {displayDate} · {entries.length} player{entries.length !== 1 ? 's' : ''}
+        {displayDate} · {visibleEntries.length} player{visibleEntries.length !== 1 ? 's' : ''}
       </p>
       {selected && (
         <HeadToHeadModal
