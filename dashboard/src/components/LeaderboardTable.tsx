@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { api } from '../api'
 import type { LeaderboardEntry } from '../api'
+import { HeadToHeadModal } from './HeadToHeadModal'
 
 function formatTime(secs: number | null): string {
   if (secs === null) return '—'
@@ -25,6 +26,7 @@ export function LeaderboardTable({ game, date }: Props) {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [selected, setSelected] = useState<string | null>(null)
 
   const todayLocal = (() => {
     const d = new Date()
@@ -85,18 +87,20 @@ export function LeaderboardTable({ game, date }: Props) {
             >
               <td className="leaderboard-rank">{rankEmoji(entry.rank)}</td>
               <td className="leaderboard-name">
-                {entry.connectionProfileUrl ? (
-                  <a
-                    href={entry.connectionProfileUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                {entry.isSelf ? (
+                  <>
+                    {entry.connectionName}
+                    <span className="self-badge">You</span>
+                  </>
+                ) : (
+                  <button
+                    className="leaderboard-name-btn"
+                    onClick={() => setSelected(entry.connectionName)}
+                    title="View head-to-head history"
                   >
                     {entry.connectionName}
-                  </a>
-                ) : (
-                  entry.connectionName
+                  </button>
                 )}
-                {entry.isSelf && <span className="self-badge">You</span>}
               </td>
               <td className="leaderboard-time">{formatScore(entry)}</td>
             </tr>
@@ -106,6 +110,13 @@ export function LeaderboardTable({ game, date }: Props) {
       <p className="leaderboard-date">
         {displayDate} · {entries.length} player{entries.length !== 1 ? 's' : ''}
       </p>
+      {selected && (
+        <HeadToHeadModal
+          game={game}
+          connectionName={selected}
+          onClose={() => setSelected(null)}
+        />
+      )}
     </div>
   )
 }
