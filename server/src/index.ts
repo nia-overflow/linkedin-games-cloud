@@ -28,12 +28,13 @@ import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import rateLimit from 'express-rate-limit';
 
-import {
-  getResultsForGame,
-  getLeaderboard,
-  getRecentLogs,
-  getDb,
-} from '../../scraper/src/db/index.js';
+// Lazy SQLite loader — only imported in local mode, never touched in cloud mode.
+// Keeps better-sqlite3 (native addon) from loading on Railway where it isn't needed.
+let _sqlite: typeof import('../../scraper/src/db/index.js') | null = null;
+async function sqlite() {
+  if (!_sqlite) _sqlite = await import('../../scraper/src/db/index.js');
+  return _sqlite;
+}
 
 import { supabase, isCloudMode } from './supabase.js';
 import { authMiddleware } from './middleware/auth.js';
@@ -101,7 +102,7 @@ async function dbGetResults(userId: string | undefined, game: string, days: numb
     if (error) throw error;
     return data ?? [];
   }
-  return getResultsForGame(game, days);
+  return (await sqlite()).getResultsForGame(game, days);
 }
 
 async function dbGetLeaderboard(userId: string | undefined, game: string, date: string) {
@@ -117,7 +118,7 @@ async function dbGetLeaderboard(userId: string | undefined, game: string, date: 
     if (error) throw error;
     return data ?? [];
   }
-  return getLeaderboard(game, date);
+  return (await sqlite()).getLeaderboard(game, date);
 }
 
 async function dbGetLogs(userId: string | undefined, days: number) {
@@ -135,7 +136,7 @@ async function dbGetLogs(userId: string | undefined, days: number) {
     if (error) throw error;
     return data ?? [];
   }
-  return getRecentLogs(days);
+  return (await sqlite()).getRecentLogs(days);
 }
 
 // ── Stats helpers (shared between modes) ─────────────────────────────────────
@@ -383,7 +384,7 @@ app.get('/api/games', requireAuth, async (req, res) => {
 
     // Local mode
     try {
-      const db = getDb();
+      const db = (await sqlite()).getDb();
       const rows = db.prepare(
         'SELECT DISTINCT game_name FROM game_results ORDER BY game_name ASC'
       ).all() as { game_name: string }[];
@@ -720,6 +721,7 @@ app.get('/api/rivals', requireAuth, async (req, res) => {
       leaderboardRows = data ?? [];
     } else {
       // Local SQLite — query across all fetched dates
+      const { getLeaderboard } = await sqlite();
       for (const date of dates) {
         const dayRows = getLeaderboard(game, date) as Array<{
           connection_name: string; played_date: string; rank: number | null; is_self: number;
@@ -801,6 +803,7 @@ app.get('/api/headtohead', requireAuth, async (req, res) => {
       if (error) throw error;
       leaderboardRows = data ?? [];
     } else {
+      const { getLeaderboard } = await sqlite();
       for (const date of dates) {
         const dayRows = getLeaderboard(game, date) as Array<{
           connection_name: string; played_date: string; rank: number | null;
