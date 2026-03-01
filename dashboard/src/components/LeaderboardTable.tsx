@@ -69,7 +69,7 @@ export function LeaderboardTable({ game, date }: Props) {
     return '—'
   }
 
-  const visibleEntries = entries.filter(e => e.rank !== null || e.isSelf)
+  const visibleEntries = entries.filter(e => e.completionTimeSecs !== null || e.score !== null || e.isSelf)
 
   return (
     <div className="leaderboard">
